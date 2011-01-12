@@ -176,142 +176,6 @@ Begin
   Result := True;
 End;
 
-Function BoomEss: Boolean;
-Var
-  X, Y, Tried : Integer;
-Begin
-  if Not LoggedIn then
-    Exit;
-  Repeat
-    if Tried = 10 then
-    begin
-      Writeln('Cant find ess... Exiting');
-      Exit;
-    end;
-    if not FoundEss(X, Y) then
-    Begin
-      Inc(Tried);
-      Wait(2000 + Random(500));
-      Continue;
-    End;
-    Mouse(X, Y, 0, 0, True);
-    Wait(1500 + Random(500));
-    Repeat
-      LevelTalking;
-      if MiningCheck then
-        begin
-        Antiban
-        AntiRandoms
-        end;
-      if InvFull then
-        Break;
-    Until not (MiningCheck);
-  Until InvFull;
-  Result := True;
-End;
-
-Function DoAubury:Boolean;
-var
-Aubury:TNPC;
-APoint : TPoint;
-x, y :integer
-Begin
-  if not LoggedIn then Exit;
-  if FindNPC(553, Aubury) then
-    APoint := TileToMSEx(Aubury.Tile, 0.5, 0.5, Aubury.Height);
-    MMouse(APoint.x, APoint.y, 1, 1);
-    if WaitUpText('-to', 600) then
-      Mouse(APoint.x, APoint.y, 1, 1, False);
-    if not R_ChooseOption('elep') then
-        Exit;
-    While not FindColorTolerance(x, y, color, MSX1, MSY1, MSX2, MSY2,)
-    Result := True;
-End;
-
-function DistanceFromArray(TheTiles: TTilesArray): integer;
-var
-  MyPos: TTile;
-  I: integer;
-begin
-  MyPos := GetMyPos;
-  Result := High(Result);
-  for I := 0 to High(TheTiles) do
-    Result := Min(Result, Distance(MyPos.x, MyPos.y, TheTiles[I].X, TheTiles[I].Y));
-end;
-
-Function AtEssPlace:Boolean;
-var
-  EssPlaceTiles : array of TTile;
-Begin
-  if not LoggedIn then Exit;
-  EssPlaceTiles := [tile(2892, 4848),  //NW
-                    tile(2926, 4849),  //NE
-                    tile(2929, 4816),  //SE
-                    tile(2895, 4814)]  //SW
-
-  if DistanceFromArray(EssPlaceTiles) < 10 then
-  begin
-    Result := True;
-    Wrtieln('Result = true atessplace...');
-  end else
-  begin
-    Result := False;
-    Exit;
-  end;
-End;
-
-Function WhichEssPlace:boolean;   // I know I can do case, will do later.
-Begin
-  if DistanceFrom(tile(2892, 4848)) < 12 then begin
-    Players[CurrentPlayer].Loc := 'NE';
-    if BoomEss then
-       if DoPortal then
-          Result := True;
-      Exit;
-    End;
-  if DistanceFrom(tile(2926, 4849)) < 12 then begin
-      Players[CurrentPlayer].Loc := 'NE';
-      if BoomEss then
-       if DoPortal then
-      Result := True;
-      Exit;
-    End;
-  if DistanceFrom(tile(2929, 4816)) < 12 then begin
-      Players[CurrentPlayer].Loc := 'SE';
-      if BoomEss then
-       if DoPortal then
-      Result := True;
-      Exit;
-    End;
-  if DistanceFrom(tile(2895, 4814)) < 12 then begin
-      Players[CurrentPlayer].Loc := 'SW';
-      if BoomEss then
-       if DoPortal then
-      Result := True;
-      Exit;
-    End;
-End;
-
-Function AtMiddle:boolean;
-Begin
-  if not LoggedIn then Exit;
-  if DistanceFrom(tile(2911, 4831)) < 8 then begin
-    Result := True;
-  end else Result := false;
-End;
-
-Function WalkFromMiddle:boolean;
-Begin
-  if not LoggedIn then Exit;
-  if not AtMiddle then
-    Exit;
-  If WalkToTile(Point(2905, 4840), 1, 1) then
-    If WalkToTile(Point(2896, 4846), 1, 1) then
-      Begin
-        Result := True;
-      End;
-End;
-
 Function DoPortal:boolean;
 var
   NWPortalTile, SWPortalTile, SEPortalTile, NEPortalTile : TTile;
@@ -394,6 +258,144 @@ Begin
          end;
   End;
 end;
+
+Function BoomEss: Boolean;
+Var
+  X, Y, Tried : Integer;
+Begin
+  if Not LoggedIn then
+    Exit;
+  Repeat
+    if Tried = 10 then
+    begin
+      Writeln('Cant find ess... Exiting');
+      Exit;
+    end;
+    if not FoundEss(X, Y) then
+    Begin
+      Inc(Tried);
+      Wait(2000 + Random(500));
+      Continue;
+    End;
+    Mouse(X, Y, 0, 0, True);
+    Wait(1500 + Random(500));
+    Repeat
+      LevelTalking;
+      if MiningCheck then
+        begin
+        Antiban
+        AntiRandoms
+        end;
+      if InvFull then
+        Break;
+    Until not (MiningCheck);
+  Until InvFull;
+  Result := True;
+End;
+
+Function DoAubury:Boolean;
+var
+Aubury:TNPC;
+APoint : TPoint;
+x, y :integer;
+Begin
+  if not LoggedIn then Exit;
+  if FindNPC(553, Aubury) then
+    APoint := TileToMSEx(Aubury.Tile, 0.5, 0.5, Aubury.Height);
+    MMouse(APoint.x, APoint.y, 1, 1);
+    if WaitUpText('-to', 600) then
+      Mouse(APoint.x, APoint.y, 1, 1, False);
+    if not R_ChooseOption('elep') then
+        Exit;
+    While not FindColorTolerance(x, y, 9358049, MSX1, MSY1, MSX2, MSY2, 5) do
+      Wait(100);
+    Result := True;
+End;
+
+function DistanceFromArray(TheTiles: TTilesArray): integer;
+var
+  MyPos: TTile;
+  I: integer;
+begin
+  MyPos := GetMyPos;
+  Result := High(Result);
+  for I := 0 to High(TheTiles) do
+    Result := Min(Result, Distance(MyPos.x, MyPos.y, TheTiles[I].X, TheTiles[I].Y));
+end;
+
+Function AtEssPlace:Boolean;
+var
+  EssPlaceTiles : array of TTile;
+Begin
+  if not LoggedIn then Exit;
+  EssPlaceTiles := [tile(2892, 4848),  //NW
+                    tile(2926, 4849),  //NE
+                    tile(2929, 4816),  //SE
+                    tile(2895, 4814)]  //SW
+
+  if DistanceFromArray(EssPlaceTiles) < 10 then
+  begin
+    Result := True;
+    Writeln('Result = true atessplace...');
+  end else
+  begin
+    Result := False;
+    Exit;
+  end;
+End;
+
+Function WhichEssPlace:boolean;   // I know I can do case, will do later.
+Begin
+  if DistanceFrom(tile(2892, 4848)) < 12 then begin
+    Players[CurrentPlayer].Loc := 'NE';
+    if BoomEss then
+       if DoPortal then
+          Result := True;
+      Exit;
+    End;
+  if DistanceFrom(tile(2926, 4849)) < 12 then begin
+      Players[CurrentPlayer].Loc := 'NE';
+      if BoomEss then
+       if DoPortal then
+      Result := True;
+      Exit;
+    End;
+  if DistanceFrom(tile(2929, 4816)) < 12 then begin
+      Players[CurrentPlayer].Loc := 'SE';
+      if BoomEss then
+       if DoPortal then
+      Result := True;
+      Exit;
+    End;
+  if DistanceFrom(tile(2895, 4814)) < 12 then begin
+      Players[CurrentPlayer].Loc := 'SW';
+      if BoomEss then
+       if DoPortal then
+      Result := True;
+      Exit;
+    End;
+End;
+
+Function AtMiddle:boolean;
+Begin
+  if not LoggedIn then Exit;
+  if DistanceFrom(tile(2911, 4831)) < 8 then begin
+    Result := True;
+  end else Result := false;
+End;
+
+Function WalkFromMiddle:boolean;
+Begin
+  if not LoggedIn then Exit;
+  if not AtMiddle then
+    Exit;
+  If WalkToTile(Point(2905, 4840), 1, 1) then
+    If WalkToTile(Point(2896, 4846), 1, 1) then
+      Begin
+        Result := True;
+      End;
+End;
+
 
 Function WalkToBank: Boolean;
 Begin
