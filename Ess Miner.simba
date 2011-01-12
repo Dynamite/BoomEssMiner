@@ -2,9 +2,15 @@ program EssMiner;
 {$define SMART}
 {$i srl/srl.scar}
 {$i Reflection/Reflection.simba}
+{$i SRL\SRL\Misc\stats.simba}
 
 type
   TTilesArray = array of TTile;
+var
+  EssCountStart, Price : integer;
+const
+  RUNEESS_ID = 1436;
+  PUREESS_ID   = 7936;
 
 Procedure DeclarePlayers;
 begin
@@ -21,6 +27,34 @@ begin
     Loc := 'at bank'; //Read the thread to see valid arguments.
     Integers[4]:= 10; //Amount of loads you want to do.
   end;
+end;
+
+function ConvertPrice(input: string): Integer;     // Credit to BlumbleBee for these two functions <3
+var
+  f: Extended;
+begin
+  input := Replace(Lowercase(Trim(input)), ',', '');
+  if (Pos('m', input) > 0) then
+    f := StrToFloatDef(Copy(input, 1, Pos('m', input) - 1), 0) * 1000000
+  else if (Pos('k', input) > 0) then
+    f := StrToFloatDef(Copy(input, 1, Pos('k', input) - 1), 0) * 1000
+  else
+    f := StrToFloatDef(Input, 0);
+  Result := Round(f);
+end;
+
+procedure SetPrice(runeEss: Boolean);
+var
+  S: string;
+  I: Integer;
+begin
+  if runeEss = true then
+    I := RUNEESS_ID
+  else
+    I := PUREESS_ID;
+
+  s := getPage('http://services.runescape.com/m=itemdb_rs/Rune_essence/viewitem.ws?obj='+IntToStr(I));
+  Price := ConvertPrice(Between('<b>Market price:</b> ', #10 + '</span>', s));
 end;
 
 Procedure AxeWielded;
@@ -61,6 +95,7 @@ Begin
                InChat('congratulations,') Then
           Begin
                Inc(Players[CurrentPlayer].Integers[2]);
+               stats_IncVariable('Total Levels Gained', 1);
                Writeln('Woooot we have now gained'+IntToStr(Players[CurrentPlayer].Integers[2])+' levels!');
                Begin
                     Case Random(10) Of
@@ -79,19 +114,82 @@ Begin
           End;
 End;
 
+procedure PrintOnSmart(TP: TStringArray; Placement: TPoint; Colour, Shadow: integer);
+var
+ mx, my, Pic, I, B, H, TPH, Numb: Integer;
+ TTP: TPointArray;
+ Canvas: TCanvas;
+begin
+  SmartSetDebug(True);
+  GetClientDimensions(mx,my);
+  Pic := BitmapFromString(mx,my,'');
+  TPH := High(TP);
+  for I := 0 to TPH do
+  begin
+    TTP := LoadTextTPA(TP[i], SmallChars, H);
+    for B := 0 to High(TTP) do
+    begin
+      Numb := ((I + 1) * 13);
+      FastSetPixel(Pic, TTP[b].x + 1, TTP[b].y + Numb + 1, Shadow);
+      FastSetPixel(Pic, TTP[b].x, TTP[b].y + Numb, Colour);
+    end;
+  end;
+  Canvas := TCANVAS.Create;
+  Canvas.Handle := SmartGetDebugDC;
+  DrawBitmap(Pic, Canvas, Placement.x, Placement.y);
+  FreeBitmap(Pic);
+end;
+
 Procedure ProgressReport;
+var
+  EssMined, TotalLoads, TotalLevels, TotalAntiban, I, ActivePlayers: Integer;
 Begin
     LevelTalking;
+    for I := 0 to HowManyPlayers-1 do
+      begin
+        with Players[I] do
+        begin
+          if Active then
+            Inc(ActivePlayers);
+          EssMined := EssMined + Integers[0];
+          TotalLoads := TotalLoads + Integers[1];
+          TotalLevels := TotalLevels + Integers[2];
+          TotalAntiban := TotalAntiban + Integers[3];
+        end;
+      end;
+      PrintOnSmart(['  Boom Goes The Willows'],Point(22, 30), 62207, 131072);
+      PrintOnSmart(
+      ['',
+      '',
+      '',
+      '            Global Stats ',
+      '           --------------',
+       '          Time Running: '+ TimeRunning,
+       '          Mined: '+IntToStr(EssMined)+' Essence',
+       '          Loads Done: : '+IntToStr(TotalLoads),
+       '          Gained: '+IntToStr(Price*EssMined)+' gp',
+       '          Gained: '+IntToStr(TotalLevels)+' levels',
+       '          Players Active: '+IntToStr(ActivePlayers),
+       '          ',
+       '            Player Stats ',
+       '           --------------',
+        '          Player: '+Capitalize(Players[CurrentPlayer].Name),
+        '          Essence: ' + IntToStr(Players[CurrentPlayer].Integers[0]),
+        '          Gained: '+IntToStr(Price*Players[CurrentPlayer].Integers[0])+' gp'
+     ], Point(30, 60), 1959605, 131072);
+
     cleardebug;
     Writeln('[-----------------------------]');
     Writeln('[         Essence Miner       ]');
     Writeln('[-----------------------------]');
     Writeln(' We worked for ' + TimeRunning);
-    Writeln(' Booomed ' + IntToStr(Players[CurrentPlayer].Integers[0])+' Essence');
-    Writeln(' Loads Done:' + IntToStr(Players[CurrentPlayer].Integers[1]));
-    Writeln(' Leveled ' + IntToStr(Players[CurrentPlayer].Integers[2]));
-    Writeln(' Antibanned ' + IntToStr(Players[CurrentPlayer].Integers[3]));
+    Writeln(' Mined ' + IntToStr(EssMined)+' Essence');
+    Writeln(' Loads Done: ' + IntToStr(TotalLoads));
+    writeLn(' Gained: '+IntToStr(Price*EssMined)+' gp');
+    Writeln(' Gained: ' + IntToStr(TotalLevels)+' levels');
+    Writeln(' Antibanned ' + IntToStr(TotalAntiBan));
     Writeln('[-----------------------------]');
+    Stats_Commit;
 End;
 
 procedure AntiBan;
@@ -123,6 +221,7 @@ Function WalkToAubury: Boolean;
 Begin
   If Not LoggedIn Then
     Exit;
+  EssCountStart := R_InvCount;
   If WalkToTile(Point(3257, 3409), 2, 1) Then
     If not WalkToTile(Point(3253, 3401), 1, 0) Then
       Exit;
@@ -408,11 +507,13 @@ End;
 
 Function Bank: Boolean;
 Var
-i : integer;
+i, EssCountEnd, EssCountFinal, ID : integer;
+B : boolean;
 Begin
   If Not LoggedIn Then
     Exit;
     Wait(1000+ Random(1000));
+    ID := getItemIDAt(2);
   If Not OpenBankFast(Bank_VE) Then
     If Not OpenBankQuiet(Bank_VE) Then
       If Not R_OpenBankBooth('veb') then
@@ -424,10 +525,16 @@ Begin
   Result := True;
   CloseBank;
   Inc(Players[CurrentPlayer].Integers[1]);
-  if Players[CurrentPlayer].Booleans[0] then
-    IncEx(Players[CurrentPlayer].Integers[0], 28)
-  else
-    IncEx(Players[CurrentPlayer].Integers[0], 27);
+  stats_IncVariable('(Loads Done)', 1);
+  EssCountFinal := (EssCountEnd - EssCountStart);
+  begin
+        B := ID = RUNEESS_ID;
+        SetPrice(B);
+        if B then
+          stats_IncVariable('(Rune Essence (Mined))', EssCountFinal)
+        else stats_IncVariable('(Pure Essence (Mined))', EssCountFinal);
+  end;
+  IncEx(Players[CurrentPlayer].Integers[0], EssCountFinal);
   ProgressReport;
 End;
 
