@@ -4,18 +4,12 @@ program EssMiner;
 {$i Reflection/Reflection.simba}
 {$i SRL\SRL\Misc\stats.simba}
 
-type
-  TTilesArray = array of TTile;
-var
-  EssCountStart, Price : integer;
-const
-  RUNEESS_ID = 1436;
-  PUREESS_ID   = 7936;
-
 
 Const // Fill out below:
-SRLStats_UserID = '2';  // Your SRL Stats user ID, not username.
+SRLStats_UserID = '';  // Your SRL Stats user ID, not username.
 SRLStats_Password = '';   // Your SRL Stats Password.
+DependClick = 4; // 1 in how many clicks is a right click option. (Mining)
+DoDebug = False; // Do you want the script to debug?
 
 Procedure DeclarePlayers;
 begin
@@ -29,10 +23,21 @@ begin
     Pass := '';
     Active := True;
     Pin := ''; //Leave blank if no pin
-    Loc := 'done aubury'; //Read the thread to see valid arguments.
+    Loc := 'banked'; //Read the thread to see valid arguments.
     Integers[4]:= 10; //Amount of loads you want to do.
   end;
 end;
+
+type
+  TTilesArray = array of TTile;
+var
+  EssCountStart, Price : integer;
+const
+  RUNEESS_ID = 1436;
+  PUREESS_ID   = 7936;
+  COLOR = 0;
+  HUE   = 1;
+  SAT   = 2;
 
 function ConvertPrice(input: string): Integer;     // Credit to BlumbleBee for these two functions <3
 var
@@ -62,6 +67,12 @@ begin
   Price := ConvertPrice(Between('<b>Market price:</b> ', #10 + '</span>', s));
 end;
 
+Procedure Debug(s:string);
+Begin
+  if DoDebug then
+    Writeln(s);
+end;
+
 Procedure AxeWielded;
 var
 Equipped : integer;
@@ -76,7 +87,7 @@ Begin
   if(R_ItemIDExistsEx(TheIDs, Pickaxe))then
     begin
       Players[CurrentPlayer].Booleans[0] := False;
-      Writeln('Pickaxe is in inventory.');
+      Debug('Pickaxe is in inventory.');
       Exit;
     end else
       GameTab(tab_Equip);
@@ -85,7 +96,7 @@ Begin
       if(InIntArray(TheIDs, Equipped))then
         begin
           Players[CurrentPlayer].Booleans[0] := True;
-          Writeln('Hatchet is equipped.');
+          Debug('Hatchet is equipped.');
           Exit;
         end;
 End;
@@ -97,7 +108,7 @@ Begin
      If (FindBlackChatMessage('Congratulations')) Or
           (FindBlackChatMessage('you just advance')) Or
           InChat('Congratulations') Or InChat('just advance') Or
-               InChat('congratulations,') Then
+               InChat('congratulations,') or LevelUp Then
           Begin
                Inc(Players[CurrentPlayer].Integers[2]);
                stats_IncVariable('Total Levels Gained', 1);
@@ -240,39 +251,81 @@ End;
 
 Function FindEss(Var X, Y : Integer; W, H, X1, Y1, X2, Y2 : Integer): Boolean;
 Var
-  i : Integer;
   TPA : TPointArray;
   ATPA : T2DPointArray;
+  T: TPoint;
+  K, G, Z: Extended;
+  Colors: array [0..1] of tIntegerArray;
+  I, J, xX, yY, Blah: Integer;
+  TPAStoof: array [0..1] of TVariantArray;
+  DoubleTPA: array [0..1] of TPointArray;
+  Index: array [0..1] of Integer;
 begin
   if not LoggedIn then Exit;
+  TPAStoof[0] := [12961230, 0.93, 0.90];
+  TPAStoof[1] := [10790060, 0.00, 0.16];
   ColorToleranceSpeed(2);
-  SetColorSpeed2Modifiers(0.00, 0.91);
+  for I := 0 to 1 do
   begin
-    Writeln('beginning FindEss');
-    FindColorsSpiralTolerance(x, y, TPA, 12040137, MSX1, MSY1, MSX2, MSY2, 5);
-    SetColorToleranceSpeed(1);
-    ATPA := SplitTPAEx(TPA, 40, 40);
-    if (Length(ATPA) = 0) then
+    SetColorSpeed2Modifiers(TPAStoof[I][HUE], TPAStoof[I][SAT]);
+    FindColorsTolerance(DoubleTPA[I], TPAStoof[I][COLOR], MSx1, MSy1, MSx2, MSy2, 5);
+    Debug('Length of TPA = '+IntToStr(Length(DoubleTPA[I])));
+    if Length(DoubleTPA[I]) = 0 then
       Exit;
-    SortATPAFromFirstPoint(ATPA, Point(MSCX, MSCY));
-    h := High(ATPA);
-    for i := 0 to h do
-    begin;
-      MiddleTPAEx(ATPA[i], x, y);
-      MMouse(x, y, 3, 3);
-      if WaitUpText('une', 450) then begin
-        Result := True;
-        break;
+    Colors[I] := GetColors(DoubleTPA[I]);
+     Debug('Length of Colors = '+IntToStr(Length(Colors[I])));
+    for J := 0 to high(Colors[I]) do
+    begin
+      ColorToXYZ(Colors[I][J], K, G, Z);
+      if InRange(Round(K), 35, 49) then
+        if InRange(Round(G), 36, 50) then
+          if InRange(Round(Z), 38, 54) then
+      begin
+        Index[I] := J;
+        Debug('Index['+IntToStr(I)+'] = '+IntToStr(J));
+        Break;
       end;
     end;
-    Writeln('Found the essence!');
-  End;
+  end;
+  ColorToleranceSpeed(1);
+  SetColorSpeed2Modifiers(0.20, 0.20);
+
+  Repeat
+  setArrayLength(TPA, 0);
+    FindColorsTolerance(TPA, Colors[J][Index[J]], MSx1, MSy1, MSx2, MSy2, 3);
+    if Length(TPA) <= 0 then
+      Exit;
+    aTPA := TPAToATPAEx(TPA, 25, 25);
+    sortATPASize(aTPA, true);
+    for I := 0 to high(aTPA) do
+    begin
+      if I = 3 then
+        break;
+      T := MiddleTPA(aTPA[I]);
+      MMouse(T.x, T.y, 5, 5);
+      Wait(400 + Random(200));
+      if WaitUpTextMulti(['ssen', 'une'], 350) then
+       begin
+        getMousePos(xX, yY);
+        Blah := RandomRange(0, DependClick);
+        if Blah = 0 then begin
+          Mouse(xX, yY, 0, 0, False);
+          WaitOption('ine', 500)
+        end else Mouse(xX, yY, 0, 0, True);
+        Result := True;
+        Blah := 0;
+        Exit;
+      end;
+        Inc(J);
+      end;
+  until J > 1;
+    Debug('Found the essence!');
 End;
 
 Function FoundEss(Var X, Y : Integer): Boolean;
 Begin
-  Writeln('Beginning FoundEss');
-  Result := FindEss(X, Y, 35, 35, MSX1, MSY1, MSX2, MSY2);
+  Debug('Beginning FoundEss');
+  Result := FindEss(X, Y, 20, 50, MSX1, MSY1, MSX2, MSY2);
 End;
 
 Function FoundEss2:Boolean;
@@ -281,7 +334,7 @@ var
   xX, yY : integer;
   CurrentObject : TRSObject;
 begin
-        Writeln('FoundEss2');
+        Debug('FoundEss2');
         CurrentObject := GetObjectById(2491, 0, 10);
         if not (TileOnMs(CurrentObject.Tile, 0) ) then
           Exit;
@@ -300,7 +353,7 @@ Function MiningCheck:Boolean;
 Begin
   if not LoggedIn then Exit;
   if not CharacterAnimating then
-    Wait(3000);
+    Wait(2000);
       if CharacterAnimating then
   Result := True else Result := False;
 End;
@@ -326,6 +379,7 @@ Begin
           if TileOnMS(NWPortalTile, 0) then
             begin
               M := TileToMSEx(NWPortalTile, 0.5, 0.5, 0);
+              Wait(1000+Random(500));
               MMouse(M.x, M.y, 1, 1);
               GetMousePos(x, y);
               if WaitUpTextMulti(['Por', 'tal', 'ter'], 500) then
@@ -397,7 +451,7 @@ Begin
   Repeat
     if Tried = 10 then
     begin
-      Writeln('Cant find ess... Exiting');
+      Debug('Cant find ess... Exiting');
       Exit;
     end;
     if not FoundEss(X, Y) then
@@ -408,7 +462,7 @@ Begin
       Wait(2000 + Random(500));
       Continue;
     End;
-    Mouse(X, Y, 0, 0, True);
+    //Mouse(X, Y, 0, 0, True);
     Wait(1500 + Random(500));
     Repeat
       LevelTalking;
