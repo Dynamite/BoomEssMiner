@@ -12,6 +12,11 @@ const
   RUNEESS_ID = 1436;
   PUREESS_ID   = 7936;
 
+
+Const // Fill out below:
+SRLStats_UserID = '2';  // Your SRL Stats user ID, not username.
+SRLStats_Password = '';   // Your SRL Stats Password.
+
 Procedure DeclarePlayers;
 begin
   HowManyPlayers := 1;
@@ -24,7 +29,7 @@ begin
     Pass := '';
     Active := True;
     Pin := ''; //Leave blank if no pin
-    Loc := 'at bank'; //Read the thread to see valid arguments.
+    Loc := 'done aubury'; //Read the thread to see valid arguments.
     Integers[4]:= 10; //Amount of loads you want to do.
   end;
 end;
@@ -143,6 +148,7 @@ end;
 Procedure ProgressReport;
 var
   EssMined, TotalLoads, TotalLevels, TotalAntiban, I, ActivePlayers: Integer;
+  StatsTimer : LongInt;
 Begin
     LevelTalking;
     for I := 0 to HowManyPlayers-1 do
@@ -189,7 +195,11 @@ Begin
     Writeln(' Gained: ' + IntToStr(TotalLevels)+' levels');
     Writeln(' Antibanned ' + IntToStr(TotalAntiBan));
     Writeln('[-----------------------------]');
-    Stats_Commit;
+    StatsTimer := GetSystemTime;
+    if StatsTimer > 300000 then begin
+      Stats_Commit;
+      StatsTimer := 0;
+    end;
 End;
 
 procedure AntiBan;
@@ -236,10 +246,10 @@ Var
 begin
   if not LoggedIn then Exit;
   ColorToleranceSpeed(2);
-  SetColorSpeed2Modifiers(0.00, 1.17);
+  SetColorSpeed2Modifiers(0.00, 0.91);
   begin
     Writeln('beginning FindEss');
-    FindColorsSpiralTolerance(x, y, TPA, 13224412, MSX1, MSY1, MSX2, MSY2, 6);
+    FindColorsSpiralTolerance(x, y, TPA, 12040137, MSX1, MSY1, MSX2, MSY2, 5);
     SetColorToleranceSpeed(1);
     ATPA := SplitTPAEx(TPA, 40, 40);
     if (Length(ATPA) = 0) then
@@ -265,14 +275,34 @@ Begin
   Result := FindEss(X, Y, 35, 35, MSX1, MSY1, MSX2, MSY2);
 End;
 
+Function FoundEss2:Boolean;
+var
+  EPoint : TPoint;
+  xX, yY : integer;
+  CurrentObject : TRSObject;
+begin
+        Writeln('FoundEss2');
+        CurrentObject := GetObjectById(2491, 0, 10);
+        if not (TileOnMs(CurrentObject.Tile, 0) ) then
+          Exit;
+        EPoint := TileToMS(CurrentObject.Tile, 0);
+        MMouse(EPoint.x, EPoint.y, 0, 0);
+        GetMousePos(xX, yY);
+        if WaitUpText('ine', 600) then
+        Mouse(xX, yY, 0, 0, True);
+        if DidRedClick then
+          Result := True
+        else Result := False;
+end;
+
 
 Function MiningCheck:Boolean;
 Begin
   if not LoggedIn then Exit;
-  if CharacterAnimating then
-    Wait(1000);
+  if not CharacterAnimating then
+    Wait(3000);
       if CharacterAnimating then
-  Result := True;
+  Result := True else Result := False;
 End;
 
 Function DoPortal:boolean;
@@ -371,8 +401,10 @@ Begin
       Exit;
     end;
     if not FoundEss(X, Y) then
+      if not FoundEss2 then
     Begin
       Inc(Tried);
+      Writeln(Tried);
       Wait(2000 + Random(500));
       Continue;
     End;
@@ -550,9 +582,8 @@ Begin
       Players[CurrentPlayer].Loc := 'done aubury';
     'done aubury': begin
     if AtMiddle then
-      Players[CurrentPlayer].Loc := 'at middle';
-    if not AtMiddle then
-      Players[CurrentPlayer].Loc := 'nearly ess';
+      Players[CurrentPlayer].Loc := 'at middle'
+    else Players[CurrentPlayer].Loc := 'nearly ess';
       end;
     'at middle':
     if WalkFromMiddle then
@@ -592,11 +623,13 @@ End;
 begin
     ClearDebug;
     ClearReport;
+    SetupSRLStats(22, SRLStats_UserID, SRLStats_Password);
     Smart_Server := 17;
     Smart_Members := false;
     Smart_Signed := true;
     Smart_SuperDetail := false;
     SetupSRL;
+    AddOnTerminate('ProgressReport');
     begin
         DeclarePlayers;
         LoginPlayer;
