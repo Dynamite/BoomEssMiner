@@ -174,7 +174,7 @@ Begin
           TotalAntiban := TotalAntiban + Integers[3];
         end;
       end;
-      PrintOnSmart(['  Boom Goes The Willows'],Point(22, 30), 62207, 131072);
+      PrintOnSmart(['  Essence Miner [BOOM]'],Point(22, 30), 62207, 131072);
       PrintOnSmart(
       ['',
       '',
@@ -397,6 +397,7 @@ Begin
           if TileOnMS(SWPortalTile, 0) then
             begin
               M := TileToMSEx(SWPortalTile, 0.5, 0.5, 0);
+              Wait(1000+Random(500));
               MMouse(M.x, M.y, 1, 1);
               GetMousePos(x, y);
               if WaitUpTextMulti(['Por', 'tal', 'ter'], 500) then
@@ -414,6 +415,7 @@ Begin
           if TileOnMS(SEPortalTile, 0) then
             begin
               M := TileToMSEx(SEPortalTile, 0.5, 0.5, 0);
+              Wait(1000+Random(500));
               MMouse(M.x, M.y, 1, 1);
               GetMousePos(x, y);
               if WaitUpTextMulti(['Por', 'tal', 'ter'], 500) then
@@ -431,9 +433,12 @@ Begin
           if TileOnMS(NEPortalTile, 0) then
             begin
               M := TileToMSEx(NEPortalTile, 0.5, 0.5, 0);
+              Wait(1000+Random(500));
               MMouse(M.x, M.y, 1, 1);
               GetMousePos(x, y);
-              if WaitUpTextMulti(['Por', 'tal', 'ter'], 500) then
+              if WaitUpTextMulti(['Por', 'tal', 'ter'], 1000) then
+                Wait(800 + Random(500));
+              if WaitUpTextMulti(['Por', 'tal', 'ter'], 1000) then
                 Mouse(x, y, 0, 0, True);
               Result := True;
             end;
