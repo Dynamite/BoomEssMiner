@@ -158,7 +158,6 @@ end;
 Procedure ProgressReport;
 var
   EssMined, TotalLoads, TotalLevels, TotalAntiban, I, ActivePlayers: Integer;
-  StatsTimer : LongInt;
 Begin
     LevelTalking;
     for I := 0 to HowManyPlayers-1 do
@@ -205,11 +204,7 @@ Begin
     Writeln(' Gained: ' + IntToStr(TotalLevels)+' levels');
     Writeln(' Antibanned ' + IntToStr(TotalAntiBan));
     Writeln('[-----------------------------]');
-    StatsTimer := GetSystemTime;
-    if StatsTimer > 300000 then begin
-      Stats_Commit;
-      StatsTimer := 0;
-    end;
+    Stats_Commit;
 End;
 
 procedure AntiBan;
@@ -629,6 +624,7 @@ Begin
   If Not LoggedIn Then
     Exit;
     Wait(1000+ Random(1000));
+    EssCountEnd := R_InvCount;
     ID := getItemIDAt(2);
   If Not OpenBankFast(Bank_VE) Then
     If Not OpenBankQuiet(Bank_VE) Then
@@ -640,14 +636,14 @@ Begin
       end;
   CloseBank;
   Inc(Players[CurrentPlayer].Integers[1]);
-  stats_IncVariable('(Loads Done)', 1);
+  stats_IncVariable('Loads Done', 1);
   EssCountFinal := (EssCountEnd - EssCountStart);
   begin
         B := ID = RUNEESS_ID;
         SetPrice(B);
         if B then
-          stats_IncVariable('(Rune Essence (Mined))', EssCountFinal)
-        else stats_IncVariable('(Pure Essence (Mined))', EssCountFinal);
+          stats_IncVariable('Rune Essence (Mined)', EssCountFinal)
+        else stats_IncVariable('Pure Essence (Mined)', EssCountFinal);
   end;
   IncEx(Players[CurrentPlayer].Integers[0], EssCountFinal);
   ProgressReport;
