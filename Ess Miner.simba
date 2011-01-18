@@ -9,7 +9,7 @@ Const // Fill out below:
 SRLStats_UserID = '';  // Your SRL Stats user ID, not username.
 SRLStats_Password = '';   // Your SRL Stats Password.
 DependClick = 4; // 1 in how many clicks is a right click option. (Mining)
-DoDebug = False; // Do you want the script to debug?
+DoDebug = True; // Do you want the script to debug?
 
 Procedure DeclarePlayers;
 begin
@@ -23,8 +23,9 @@ begin
     Pass := '';
     Active := True;
     Pin := ''; //Leave blank if no pin
-    Loc := 'banked'; //Read the thread to see valid arguments.
+    Loc := 'done aubury'; //Read the thread to see valid arguments.
     Integers[4]:= 10; //Amount of loads you want to do.
+    Strings[1] := 'Mining'; // Lamp Skill
   end;
 end;
 
@@ -35,9 +36,10 @@ var
 const
   RUNEESS_ID = 1436;
   PUREESS_ID   = 7936;
-  COLOR = 0;
-  HUE   = 1;
-  SAT   = 2;
+  Colour = 0;
+  Hue = 1;
+  Sat = 2;
+  Tol = 3;
 
 function ConvertPrice(input: string): Integer;     // Credit to BlumbleBee for these two functions <3
 var
@@ -105,16 +107,13 @@ Procedure LevelTalking;
 Begin
      If Not (LoggedIn) Or Not (Players[CurrentPlayer].Active) Then
           exit;
-     If (FindBlackChatMessage('Congratulations')) Or
-          (FindBlackChatMessage('you just advance')) Or
-          InChat('Congratulations') Or InChat('just advance') Or
-               InChat('congratulations,') or LevelUp Then
+     If LevelUp Then
           Begin
                Inc(Players[CurrentPlayer].Integers[2]);
                stats_IncVariable('Total Levels Gained', 1);
-               Writeln('Woooot we have now gained'+IntToStr(Players[CurrentPlayer].Integers[2])+' levels!');
+               Writeln('Woooot we have now gained '+IntToStr(Players[CurrentPlayer].Integers[2])+' levels!');
                Begin
-                    Case Random(10) Of
+                    Case Random(50) Of
                          0: TypeSend('Guess what... I levelled!');
                          1: TypeSend('w00t lvld');
                          2: TypeSend('lvld again...');
@@ -235,7 +234,7 @@ Begin
         LevelTalking;
     FindNormalRandoms;
     Wait(300+Random(200));
-    FindLamp('Mining');
+    FindLamp(Players[CurrentPlayer].Strings[1]);
 End;
 
 Function WalkToAubury: Boolean;
@@ -259,7 +258,7 @@ Var
   I, J, xX, yY, Blah: Integer;
   TPAStoof: array [0..1] of TVariantArray;
   DoubleTPA: array [0..1] of TPointArray;
-  Index: array [0..1] of Integer;
+  Which: array [0..1] of Integer;
 begin
   if not LoggedIn then Exit;
   TPAStoof[0] := [12961230, 0.93, 0.90];
@@ -267,8 +266,8 @@ begin
   ColorToleranceSpeed(2);
   for I := 0 to 1 do
   begin
-    SetColorSpeed2Modifiers(TPAStoof[I][HUE], TPAStoof[I][SAT]);
-    FindColorsTolerance(DoubleTPA[I], TPAStoof[I][COLOR], MSx1, MSy1, MSx2, MSy2, 5);
+    SetColorSpeed2Modifiers(TPAStoof[I][Hue], TPAStoof[I][Sat]);
+    FindColorsTolerance(DoubleTPA[I], TPAStoof[I][Colour], MSx1, MSy1, MSx2, MSy2, 5);
     Debug('Length of TPA = '+IntToStr(Length(DoubleTPA[I])));
     if Length(DoubleTPA[I]) = 0 then
       Exit;
@@ -281,8 +280,8 @@ begin
         if InRange(Round(G), 36, 50) then
           if InRange(Round(Z), 38, 54) then
       begin
-        Index[I] := J;
-        Debug('Index['+IntToStr(I)+'] = '+IntToStr(J));
+        Which[I] := J;
+        Debug('Which['+IntToStr(I)+'] = '+IntToStr(J));
         Break;
       end;
     end;
@@ -291,17 +290,17 @@ begin
   SetColorSpeed2Modifiers(0.20, 0.20);
 
   Repeat
-  setArrayLength(TPA, 0);
-    FindColorsTolerance(TPA, Colors[J][Index[J]], MSx1, MSy1, MSx2, MSy2, 3);
+    SetArrayLength(TPA, 0);
+    FindColorsTolerance(TPA, Colors[J][Which[J]], MSX1, MSY1, MSX2, MSY2, 3);
     if Length(TPA) <= 0 then
       Exit;
-    aTPA := TPAToATPAEx(TPA, 25, 25);
-    sortATPASize(aTPA, true);
-    for I := 0 to high(aTPA) do
+    ATPA := TPAToATPAEx(TPA, 25, 25);
+    SortATPASize(ATPA, true);
+    for I := 0 to high(ATPA) do
     begin
       if I = 3 then
-        break;
-      T := MiddleTPA(aTPA[I]);
+        Break;
+      T := MiddleTPA(ATPA[I]);
       MMouse(T.x, T.y, 5, 5);
       Wait(400 + Random(200));
       if WaitUpTextMulti(['ssen', 'une'], 350) then
@@ -361,90 +360,94 @@ End;
 Function DoPortal:boolean;
 var
   NWPortalTile, SWPortalTile, SEPortalTile, NEPortalTile : TTile;
-  M : TPoint;
-  x, y : integer;
+  P : TPoint;
+  xX, yY, Blah, I, Which, LengthA, LengthB : integer;
+  TPA : TPointArray;
+  ATPA : T2DPointArray;
+  WhichTPA: array [0..1] of TPointArray;
+  TPAStoof: array [0..1] of TVariantArray;
 Begin
   NWPortalTile := (tile(2885, 4850)); //NW
   SWPortalTile := (tile(2889, 4813)); //SW
   SEPortalTile := (tile(2933, 4815)); //SE
   NEPortalTile := (tile(2932, 4854)); //NE
+  TPAStoof[0] := [11652296, 0.49, 2.59, 3];
+  TPAStoof[1] := [12898508, 2.78, 4.37, 1];
 
   case Players[CurrentPlayer].Loc of
   'NW' : Begin
           if not WalkToTile((NWPortalTile), 1, 1) then begin
           NextPlayer(False);
           Exit;
-         end else
-         begin
-          if TileOnMS(NWPortalTile, 0) then
-            begin
-              M := TileToMSEx(NWPortalTile, 0.5, 0.5, 0);
-              Wait(1000+Random(500));
-              MMouse(M.x, M.y, 1, 1);
-              GetMousePos(x, y);
-              if WaitUpTextMulti(['Por', 'tal', 'ter'], 500) then
-                Mouse(x, y, 0, 0, True);
-              Result := True;
-            end;
-          end;
-         End;
-  'SW' : Begin
+         end;
+         end;
+  'SW' :  Begin
           if not WalkToTile((SWPortalTile), 1, 1) then begin
           NextPlayer(False);
           Exit;
-         end else
-         begin
-          if TileOnMS(SWPortalTile, 0) then
-            begin
-              M := TileToMSEx(SWPortalTile, 0.5, 0.5, 0);
-              Wait(1000+Random(500));
-              MMouse(M.x, M.y, 1, 1);
-              GetMousePos(x, y);
-              if WaitUpTextMulti(['Por', 'tal', 'ter'], 500) then
-                Mouse(x, y, 0, 0, True);
-              Result := True;
-            end;
-          end;
-         End;
-  'SE' : Begin
+         end;
+         end;
+  'SE' :  Begin
           if not WalkToTile((SEPortalTile), 1, 1) then begin
           NextPlayer(False);
-          exit;
-         end else
-         begin
-          if TileOnMS(SEPortalTile, 0) then
-            begin
-              M := TileToMSEx(SEPortalTile, 0.5, 0.5, 0);
-              Wait(1000+Random(500));
-              MMouse(M.x, M.y, 1, 1);
-              GetMousePos(x, y);
-              if WaitUpTextMulti(['Por', 'tal', 'ter'], 500) then
-                Mouse(x, y, 0, 0, True);
-              Result := True;
-            end;
-          end;
+          Exit;
          end;
-  'NE' : Begin
+         end;
+  'NE' :  Begin
           if not WalkToTile((NEPortalTile), 1, 1) then begin
           NextPlayer(False);
-          exit;
-         end else
-         begin
-          if TileOnMS(NEPortalTile, 0) then
-            begin
-              M := TileToMSEx(NEPortalTile, 0.5, 0.5, 0);
-              Wait(1000+Random(500));
-              MMouse(M.x, M.y, 1, 1);
-              GetMousePos(x, y);
-              if WaitUpTextMulti(['Por', 'tal', 'ter'], 1000) then
-                Wait(800 + Random(500));
-              if WaitUpTextMulti(['Por', 'tal', 'ter'], 1000) then
-                Mouse(x, y, 0, 0, True);
-              Result := True;
-            end;
-          end;
+          Exit;
+         end;
          end;
   End;
+  Repeat
+    Wait(250);
+  Until not CharacterMoving;
+  Wait(3000);
+  repeat
+    for I := 0 to 1 do
+    begin
+      ColorToleranceSpeed(2);
+      SetColorSpeed2Modifiers(TPAStoof[I][Hue], TPAStoof[I][Sat]);
+      FindColorsTolerance(WhichTPA[I], TPAStoof[I][Colour], MSX1, MSY1, MSX2, MSY2, TPAStoof[I][Tol]);
+      ColorToleranceSpeed(1);
+      SetColorSpeed2Modifiers(0.20, 0.20);
+    end;
+    if Length(WhichTPA[0]) or Length(WhichTPA[1]) > 0 then
+      Break;
+  until False;
+  LengthA := Length(WhichTPA[0]);
+  LengthB := Length(WhichTPA[1]);
+  Debug('LengthA = '+IntToStr(LengthA));
+  Debug('LengthB = '+IntToStr(LengthB));
+  if LengthA > LengthB then
+    Which := 0
+  else
+    Which := 1;
+  Debug('Which = '+IntToStr(Which));
+  TPA := WhichTPA[Which];
+  ATPA := SplitTPAEx(TPA, 10, 10);
+  SortATPASize(ATPA, true);
+  for I := 0 to high(ATPA) do
+  begin
+    if I > 2 then
+      Exit;
+    P := MiddleTPA(ATPA[I]);
+    Wait(1000 + Random(500));
+    MMouse(P.x, P.y, 5, 5);
+    Wait(1000);
+    //if WaitUpText('ortal', 400) then
+    begin
+      GetMousePos(xX, yY);
+      Blah := RandomRange(0, DependClick);
+        if Blah = 0 then begin
+          Mouse(xX, yY, 0, 0, False);
+          WaitOption('nte', 500)
+        end else Mouse(xX, yY, 0, 0, True);
+      Result := true;
+      Exit;
+    end;
+  end;
 end;
 
 Function BoomEss: Boolean;
@@ -453,6 +456,7 @@ Var
 Begin
   if Not LoggedIn then
     Exit;
+  Debug('BoomEss');
   Repeat
     if Tried = 10 then
     begin
@@ -463,7 +467,7 @@ Begin
       if not FoundEss2 then
     Begin
       Inc(Tried);
-      Writeln(Tried);
+      Debug(IntToStr(Tried));
       Wait(2000 + Random(500));
       Continue;
     End;
@@ -500,6 +504,7 @@ Begin
     While not FindColorTolerance(x, y, 9358049, MSX1, MSY1, MSX2, MSY2, 5) do
       Wait(100);
     Result := True;
+    Debug('Done aubury');
 End;
 
 function DistanceFromArray(TheTiles: TTilesArray): integer;
@@ -516,6 +521,7 @@ end;
 Function AtEssPlace:Boolean;
 var
   EssPlaceTiles : array of TTile;
+  Tower, Tracks : TRSObject;
 Begin
   if not LoggedIn then Exit;
   EssPlaceTiles := [tile(2892, 4848),  //NW
@@ -523,54 +529,71 @@ Begin
                     tile(2929, 4816),  //SE
                     tile(2895, 4814)]  //SW
 
-  if DistanceFromArray(EssPlaceTiles) < 10 then
+  {Ladder := GetObjectByID(505, OBJECT_TYPE_FLOORDECOR, 15);
+  Ladder := GetObjectByID(505, OBJECT_TYPE_FLOORDECOR, 15);
+  Ladder := GetObjectByID(505, OBJECT_TYPE_FLOORDECOR, 15);
+  Ladder := GetObjectByID(505, OBJECT_TYPE_FLOORDECOR, 15);}
+
+  Tower := GetObjectByID(506, OBJECT_TYPE_FLOORDECOR, 30);
+  Tracks := GetObjectByID(454, OBJECT_TYPE_FLOORDECOR, 20);
+  if (DistanceFromArray(EssPlaceTiles) < 50) or FindRSObject(Tower) or FindRSObject(Tracks) then
   begin
     Result := True;
-    Writeln('Result = true atessplace...');
+    Debug('Result = true atessplace...');
   end else
   begin
     Result := False;
+    Debug('AtEssPlace False');
     Exit;
   end;
 End;
 
 Function WhichEssPlace:boolean;   // I know I can do case, will do later.
 Begin
-  if DistanceFrom(tile(2892, 4848)) < 12 then begin
-    Players[CurrentPlayer].Loc := 'NE';
+  if DistanceFrom(tile(2892, 4848)) < 16 then begin
+    Players[CurrentPlayer].Loc := 'NW';
+    Debug('At NW');
     if BoomEss then
-       if DoPortal then
-          Result := True;
-      Exit;
+      if DoPortal then
+    Result := True;
+    Exit;
     End;
   if DistanceFrom(tile(2926, 4849)) < 12 then begin
       Players[CurrentPlayer].Loc := 'NE';
+      Debug('At NE');
       if BoomEss then
-       if DoPortal then
+        if DoPortal then
       Result := True;
       Exit;
     End;
-  if DistanceFrom(tile(2929, 4816)) < 12 then begin
+  if DistanceFrom(tile(2929, 4816)) < 16 then begin
       Players[CurrentPlayer].Loc := 'SE';
+      Debug('At SE');
       if BoomEss then
-       if DoPortal then
+        if DoPortal then
       Result := True;
       Exit;
     End;
-  if DistanceFrom(tile(2895, 4814)) < 12 then begin
+  if DistanceFrom(tile(2895, 4814)) < 16 then begin
       Players[CurrentPlayer].Loc := 'SW';
+      Debug('At SW');
       if BoomEss then
-       if DoPortal then
+        if DoPortal then
       Result := True;
       Exit;
     End;
 End;
 
 Function AtMiddle:boolean;
+var
+  Rope : TRSObject;
 Begin
   if not LoggedIn then Exit;
-  if DistanceFrom(tile(2911, 4831)) < 8 then begin
+  //Ladder := GetObjectByID(505, OBJECT_TYPE_FLOORDECOR, 20);
+  Rope := GetObjectByID(496, OBJECT_TYPE_FLOORDECOR, 9);
+  if (DistanceFrom(tile(2911, 4832)) < 15) or (FindRSObject(Rope)) then begin
     Result := True;
+    Writeln('AtMiddle')
   end else Result := false;
 End;
 
@@ -579,9 +602,10 @@ Begin
   if not LoggedIn then Exit;
   if not AtMiddle then
     Exit;
-  If WalkToTile(Point(2905, 4840), 1, 1) then
-    If WalkToTile(Point(2896, 4846), 1, 1) then
+  If WalkToTile(Point(2906, 4826), 1, 1) then
+    If WalkToTile(Point(2898, 4815), 1, 1) then
       Begin
+        Wait(1500 + Random(500));
         Result := True;
       End;
 End;
@@ -591,6 +615,7 @@ Function WalkToBank: Boolean;
 Begin
   If Not LoggedIn Then
     Exit;
+  Wait(750 + Random(300));
   If WalkToTile(Point(3259, 3411), 1, 1) Then
     if WalkToTile(Point(3253, 3420), 1, 1) then
       Result := True;
@@ -613,7 +638,6 @@ Begin
       begin
         Deposit(i, 28, True);
       end;
-  Result := True;
   CloseBank;
   Inc(Players[CurrentPlayer].Integers[1]);
   stats_IncVariable('(Loads Done)', 1);
@@ -627,6 +651,7 @@ Begin
   end;
   IncEx(Players[CurrentPlayer].Integers[0], EssCountFinal);
   ProgressReport;
+  Result := True;
 End;
 
 Procedure MainLoop;
@@ -650,22 +675,8 @@ Begin
     'nearly ess':
     if AtEssPlace then
       Players[CurrentPlayer].Loc := 'at ess';
-    'at ess': WhichEssPlace;
-    'NW':
-    if BoomEss then
-      if DoPortal then
-      Players[CurrentPlayer].Loc := 'teleported';
-    'SW':
-    if BoomEss then
-      if DoPortal then
-      Players[CurrentPlayer].Loc := 'teleported';
-    'NE':
-    if BoomEss then
-      if DoPortal then
-      Players[CurrentPlayer].Loc := 'teleported';
-    'SE':
-    if BoomEss then
-      if DoPortal then
+    'at ess':
+    if WhichEssPlace then
       Players[CurrentPlayer].Loc := 'teleported';
     'teleported':
     if WalkToBank then
