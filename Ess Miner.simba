@@ -4,11 +4,18 @@ program EssMiner;
 {$i Reflection/Reflection.simba}
 {$i SRL\SRL\Misc\stats.simba}
 
+{         = Valid Arguments =          }
+{         - banked                     }   // already banked need to walk to aubury
+{         - done aubury                }   // done aubury now at the ess place
+{         - at aubury                  }   // at aubury need to get to ess place
+{         - at bank                    }   // at bank, need to bank still
+{         - teleported                 }   // teleported from ess place, in auburys room
+
 
 Const // Fill out below:
-SRLStats_UserID = '';  // Your SRL Stats user ID, not username.
+SRLStats_UserID = '';  // Your SRL Stats username.
 SRLStats_Password = '';   // Your SRL Stats Password.
-DependClick = 4; // 1 in how many clicks is a right click option. (Mining)
+DependClick = 5; // 1 in how many clicks is a right click option. (Mining)
 DoDebug = True; // Do you want the script to debug?
 
 Procedure DeclarePlayers;
@@ -24,7 +31,7 @@ begin
     Active := True;
     Pin := ''; //Leave blank if no pin
     Loc := 'done aubury'; //Read the thread to see valid arguments.
-    Integers[4]:= 10; //Amount of loads you want to do.
+    Integers[4]:= 100; //Amount of loads you want to do.
     Strings[1] := 'Mining'; // Lamp Skill
   end;
 end;
@@ -237,6 +244,8 @@ Begin
   If Not LoggedIn Then
     Exit;
   EssCountStart := R_InvCount;
+  if R_GetMMLevels('run') > 50 then
+    SetRun(True);
   If WalkToTile(Point(3257, 3409), 2, 1) Then
     If not WalkToTile(Point(3253, 3401), 1, 0) Then
       Exit;
@@ -262,7 +271,7 @@ begin
   for I := 0 to 1 do
   begin
     SetColorSpeed2Modifiers(TPAStoof[I][Hue], TPAStoof[I][Sat]);
-    FindColorsTolerance(DoubleTPA[I], TPAStoof[I][Colour], MSx1, MSy1, MSx2, MSy2, 5);
+    FindColorsTolerance(DoubleTPA[I], TPAStoof[I][Colour], MSx1, MSy1, MSx2, MSy2, 4);
     Debug('Length of TPA = '+IntToStr(Length(DoubleTPA[I])));
     if Length(DoubleTPA[I]) = 0 then
       Exit;
@@ -347,7 +356,7 @@ Function MiningCheck:Boolean;
 Begin
   if not LoggedIn then Exit;
   if not CharacterAnimating then
-    Wait(2000);
+    Wait(2500);
       if CharacterAnimating then
   Result := True else Result := False;
 End;
@@ -395,6 +404,7 @@ Begin
          end;
          end;
   End;
+  if CharacterMoving then
   Repeat
     Wait(250);
   Until not CharacterMoving;
@@ -487,6 +497,7 @@ var
 Aubury:TNPC;
 APoint : TPoint;
 x, y :integer;
+Tracks :TRSObject;
 Begin
   if not LoggedIn then Exit;
   if FindNPC(553, Aubury) then
@@ -496,8 +507,7 @@ Begin
       Mouse(APoint.x, APoint.y, 1, 1, False);
     if not R_ChooseOption('elep') then
         Exit;
-    While not FindColorTolerance(x, y, 9358049, MSX1, MSY1, MSX2, MSY2, 5) do
-      Wait(100);
+    Wait(3000);
     Result := True;
     Debug('Done aubury');
 End;
@@ -515,32 +525,25 @@ end;
 
 Function AtEssPlace:Boolean;
 var
-  EssPlaceTiles : array of TTile;
+  NW, NE, SE, SW : TTile;
   Tower, Tracks : TRSObject;
 Begin
   if not LoggedIn then Exit;
-  EssPlaceTiles := [tile(2892, 4848),  //NW
-                    tile(2926, 4849),  //NE
-                    tile(2929, 4816),  //SE
-                    tile(2895, 4814)]  //SW
-
-  {Ladder := GetObjectByID(505, OBJECT_TYPE_FLOORDECOR, 15);
-  Ladder := GetObjectByID(505, OBJECT_TYPE_FLOORDECOR, 15);
-  Ladder := GetObjectByID(505, OBJECT_TYPE_FLOORDECOR, 15);
-  Ladder := GetObjectByID(505, OBJECT_TYPE_FLOORDECOR, 15);}
+  NW := Point(2892, 4848);  //NW
+  NE := Point(2926, 4849);  //NE
+  SE := Point(2929, 4816);  //SE
+  SW := Point(2895, 4814);  //SW
 
   Tower := GetObjectByID(506, OBJECT_TYPE_FLOORDECOR, 30);
   Tracks := GetObjectByID(454, OBJECT_TYPE_FLOORDECOR, 20);
-  if (DistanceFromArray(EssPlaceTiles) < 50) or FindRSObject(Tower) or FindRSObject(Tracks) then
-  begin
-    Result := True;
-    Debug('Result = true atessplace...');
-  end else
-  begin
-    Result := False;
-    Debug('AtEssPlace False');
-    Exit;
-  end;
+  if (DistanceFrom(NW) < 20) or (DistanceFrom(NE) <10) or (DistanceFrom(SE) <30) or (DistanceFrom(SW) <20) then
+      Result := True
+      else begin
+          NextPlayer(False);
+          Debug('AtEssPlace False');
+          Result := False;
+          Exit
+     end;
 End;
 
 Function WhichEssPlace:boolean;   // I know I can do case, will do later.
@@ -553,7 +556,7 @@ Begin
     Result := True;
     Exit;
     End;
-  if DistanceFrom(tile(2926, 4849)) < 12 then begin
+  if DistanceFrom(tile(2926, 4849)) < 16 then begin
       Players[CurrentPlayer].Loc := 'NE';
       Debug('At NE');
       if BoomEss then
@@ -582,27 +585,64 @@ End;
 Function AtMiddle:boolean;
 var
   Rope : TRSObject;
+  MiddleTile:array [0..26] of TTile;
+  MainTile, done:TTile;
+  I:integer;
 Begin
   if not LoggedIn then Exit;
-  //Ladder := GetObjectByID(505, OBJECT_TYPE_FLOORDECOR, 20);
+  Wait(5000);
+  Writeln('Starting at Middle');
+  MainTile := Tile(2909, 4834);
+  MiddleTile[0] := Tile(MainTile.x, MainTile.y);
+  MiddleTile[1] := Tile(MainTile.x+1, MainTile.y);
+  MiddleTile[2] := Tile(MainTile.x+2, MainTile.y);
+  MiddleTile[3] := Tile(MainTile.x+3, MainTile.y);
+  MiddleTile[4] := Tile(MainTile.x, MainTile.y-1);
+  MiddleTile[5] := Tile(MainTile.x+1, MainTile.y-1);
+  MiddleTile[6] := Tile(MainTile.x+2, MainTile.y-1);
+  MiddleTile[7] := Tile(MainTile.x+3, MainTile.y-1);
+  MiddleTile[8] := Tile(MainTile.x, MainTile.y-2);
+  MiddleTile[9] := Tile(MainTile.x+1, MainTile.y-2);
+  MiddleTile[10] := Tile(MainTile.x+2, MainTile.y-2);
+  MiddleTile[11] := Tile(MainTile.x+3, MainTile.y-2);
+  MiddleTile[12] := Tile(MainTile.x, MainTile.y-3);
+  MiddleTile[13] := Tile(MainTile.x+1, MainTile.y-3);
+  MiddleTile[14] := Tile(MainTile.x+2, MainTile.y-3);
+  MiddleTile[15] := Tile(MainTile.x+3, MainTile.y-3);
+  MiddleTile[16] := Tile(MainTile.x, MainTile.y-4);
+  MiddleTile[17] := Tile(MainTile.x+1, MainTile.y-4);
+  MiddleTile[18] := Tile(MainTile.x+2, MainTile.y-4);
+  MiddleTile[19] := Tile(MainTile.x+3, MainTile.y-4);
+  MiddleTile[20] := Tile(2909, 4829);
+  MiddleTile[21] := Tile(2909, 4828);
+  MiddleTile[22] := Tile(2909, 4827);
+  MiddleTile[23] := Tile(2908, 4826);
+  MiddleTile[24] := Tile(2907, 4826);
+  MiddleTile[25] := Tile(2906, 4826);
+  MiddleTile[26] := Tile(2905, 4826);
   Rope := GetObjectByID(496, OBJECT_TYPE_FLOORDECOR, 9);
-  if (DistanceFrom(tile(2911, 4832)) < 15) or (FindRSObject(Rope)) then begin
-    Result := True;
-    Writeln('AtMiddle')
-  end else Result := false;
+  done := GetMyPos;
+  For I:= 0 to 26 do
+  if ((done.x = MiddleTile[I].x) and (done.y = MiddleTile[I].y)) then begin
+  //if TileOnMS(MiddleTile[I].x, MiddleTile[I].y, 0) then begin
+      Writeln('AtMiddle');
+      Result := True;
+      Exit
+    end else
+  Result := false;
 End;
 
 Function WalkFromMiddle:boolean;
 Begin
   if not LoggedIn then Exit;
-  if not AtMiddle then
-    Exit;
-  If WalkToTile(Point(2906, 4826), 1, 1) then
+    Writeln('Starting WalkFromMiddle');
+    WalkToTile(Point(2906, 4826), 1, 1);
     If WalkToTile(Point(2898, 4815), 1, 1) then
       Begin
         Wait(1500 + Random(500));
-        Result := True;
-      End;
+        Debug('Walked from middle');
+        Result := True
+      End else Result := False;
 End;
 
 
@@ -611,6 +651,8 @@ Begin
   If Not LoggedIn Then
     Exit;
   Wait(750 + Random(300));
+  if R_GetMMLevels('run') > 50 then
+    SetRun(True);
   If WalkToTile(Point(3259, 3411), 1, 1) Then
     if WalkToTile(Point(3253, 3420), 1, 1) then
       Result := True;
@@ -623,6 +665,10 @@ B : boolean;
 Begin
   If Not LoggedIn Then
     Exit;
+    if CharacterMoving then
+    Repeat
+      Wait(100)
+    Until not CharacterMoving;
     Wait(1000+ Random(1000));
     EssCountEnd := R_InvCount;
     ID := getItemIDAt(2);
