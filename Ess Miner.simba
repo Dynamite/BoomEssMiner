@@ -3,7 +3,9 @@ program EssMiner;
 {$i srl/srl.scar}
 {$i Reflection/Reflection.simba}
 {$i SRL\SRL\Misc\stats.simba}
-
+{Notes from Myles:
+Your doing multiplayer wrong, NEVER call nextplayer in the middle of your mainloop.
+Just call logout and if not logged in then exit; repeatedly until the end of the loop.}
 {         = Valid Arguments =          }
 {         - banked                     }   // already banked need to walk to aubury
 {         - done aubury                }   // done aubury now at the ess place
@@ -67,7 +69,7 @@ var
   S: string;
   I: Integer;
 begin
-  if runeEss = true then
+  if runeEss then
     I := RUNEESS_ID
   else
     I := PUREESS_ID;
@@ -84,9 +86,9 @@ end;
 
 Procedure AxeWielded;
 var
-Equipped : integer;
-TheIDs: TIntegerArray;
-Pickaxe : TInvItemArray;
+  Equipped : integer;
+  TheIDs: TIntegerArray;
+  Pickaxe : TInvItemArray;
 Begin
   If Not (LoggedIn) Or Not (Players[CurrentPlayer].Active) Then
     exit;
@@ -99,41 +101,41 @@ Begin
       Debug('Pickaxe is in inventory.');
       Exit;
     end else
+    begin//You orignally had it just go to tab equip
       GameTab(tab_Equip);
       Wait(500 + Random(200));
       Equipped := GetEquippedIDAt(3);
       if(InIntArray(TheIDs, Equipped))then
-        begin
-          Players[CurrentPlayer].Booleans[0] := True;
-          Debug('Hatchet is equipped.');
-          Exit;
-        end;
+      begin
+        Players[CurrentPlayer].Booleans[0] := True;
+        Debug('Hatchet is equipped.');
+        Exit;
+      end;
+    end;
 End;
 
 Procedure LevelTalking;
 Begin
-     If Not (LoggedIn) Or Not (Players[CurrentPlayer].Active) Then
-          exit;
-     If LevelUp Then
-          Begin
-               Inc(Players[CurrentPlayer].Integers[2]);
-               stats_IncVariable('Total Levels Gained', 1);
-               Writeln('Woooot we have now gained '+IntToStr(Players[CurrentPlayer].Integers[2])+' levels!');
-               Begin
-                    Case Random(50) Of
-                         0: TypeSend('Guess what... I levelled!');
-                         1: TypeSend('w00t lvld');
-                         2: TypeSend('lvld again...');
-                         3: TypeSend('grats me! I lvld!');
-                         4: TypeSend('gay lag, didnt realise i lvld');
-                         5: TypeSend('woopdewoop');
-                         6: TypeSend('this levelling stuff is getting boring...');
-                         7: TypeSend('dangdarnit, I jooost lavallled');
-                         8: TypeSend('can we have a party cause i just lvld');
-                         9: TypeSend('house party at mine! jokes...');
-                    End;
-               End;
-          End;
+  If Not (LoggedIn) Or Not (Players[CurrentPlayer].Active) Then
+    exit;
+  If LevelUp Then
+  Begin
+    Inc(Players[CurrentPlayer].Integers[2]);
+    stats_IncVariable('Total Levels Gained', 1);
+    Writeln('Woooot we have now gained '+IntToStr(Players[CurrentPlayer].Integers[2])+' levels!');
+    Case Random(50) Of
+      0: TypeSend('Guess what... I levelled!');
+      1: TypeSend('w00t lvld');
+      2: TypeSend('lvld again...');
+      3: TypeSend('grats me! I lvld!');
+      4: TypeSend('gay lag, didnt realise i lvld');
+      5: TypeSend('woopdewoop');
+      6: TypeSend('this levelling stuff is getting boring...');
+      7: TypeSend('dangdarnit, I jooost lavallled');
+      8: TypeSend('can we have a party cause i just lvld');
+      9: TypeSend('house party at mine! jokes...');
+    End;
+  End;
 End;
 
 procedure PrintOnSmart(TP: TStringArray; Placement: TPoint; Colour, Shadow: integer);
@@ -166,52 +168,52 @@ Procedure ProgressReport;
 var
   EssMined, TotalLoads, TotalLevels, TotalAntiban, I, ActivePlayers: Integer;
 Begin
-    LevelTalking;
-    for I := 0 to HowManyPlayers-1 do
-      begin
-        with Players[I] do
-        begin
-          if Active then
-            Inc(ActivePlayers);
-          EssMined := EssMined + Integers[0];
-          TotalLoads := TotalLoads + Integers[1];
-          TotalLevels := TotalLevels + Integers[2];
-          TotalAntiban := TotalAntiban + Integers[3];
-        end;
-      end;
-      PrintOnSmart(['  Essence Miner [BOOM]'],Point(22, 30), 62207, 131072);
-      PrintOnSmart(
-      ['',
-      '',
-      '',
-      '            Global Stats ',
-      '           --------------',
-       '          Time Running: '+ TimeRunning,
-       '          Mined: '+IntToStr(EssMined)+' Essence',
-       '          Loads Done: : '+IntToStr(TotalLoads),
-       '          Gained: '+IntToStr(Price*EssMined)+' gp',
-       '          Gained: '+IntToStr(TotalLevels)+' levels',
-       '          Players Active: '+IntToStr(ActivePlayers),
-       '          ',
-       '            Player Stats ',
-       '           --------------',
-        '          Player: '+Capitalize(Players[CurrentPlayer].Name),
-        '          Essence: ' + IntToStr(Players[CurrentPlayer].Integers[0]),
-        '          Gained: '+IntToStr(Price*Players[CurrentPlayer].Integers[0])+' gp'
-     ], Point(30, 60), 1959605, 131072);
+  LevelTalking;
+  for I := 0 to HowManyPlayers-1 do
+  begin
+    with Players[I] do
+    begin
+      if Active then
+        Inc(ActivePlayers);
+      EssMined := EssMined + Integers[0];
+      TotalLoads := TotalLoads + Integers[1];
+      TotalLevels := TotalLevels + Integers[2];
+      TotalAntiban := TotalAntiban + Integers[3];
+    end;
+  end;
+  PrintOnSmart(['  Essence Miner [BOOM]'],Point(22, 30), 62207, 131072);
+  PrintOnSmart(
+  ['',
+   '',
+   '',
+   '            Global Stats ',
+   '           --------------',
+   '          Time Running: '+ TimeRunning,
+   '          Mined: '+IntToStr(EssMined)+' Essence',
+   '          Loads Done: : '+IntToStr(TotalLoads),
+   '          Gained: '+IntToStr(Price*EssMined)+' gp',
+   '          Gained: '+IntToStr(TotalLevels)+' levels',
+   '          Players Active: '+IntToStr(ActivePlayers),
+   '          ',
+   '            Player Stats ',
+   '           --------------',
+   '          Player: '+Capitalize(Players[CurrentPlayer].Name),
+   '          Essence: ' + IntToStr(Players[CurrentPlayer].Integers[0]),
+   '          Gained: '+IntToStr(Price*Players[CurrentPlayer].Integers[0])+' gp'
+   ], Point(30, 60), 1959605, 131072);
 
-    cleardebug;
-    Writeln('[-----------------------------]');
-    Writeln('[         Essence Miner       ]');
-    Writeln('[-----------------------------]');
-    Writeln(' We worked for ' + TimeRunning);
-    Writeln(' Mined ' + IntToStr(EssMined)+' Essence');
-    Writeln(' Loads Done: ' + IntToStr(TotalLoads));
-    writeLn(' Gained: '+IntToStr(Price*EssMined)+' gp');
-    Writeln(' Gained: ' + IntToStr(TotalLevels)+' levels');
-    Writeln(' Antibanned ' + IntToStr(TotalAntiBan));
-    Writeln('[-----------------------------]');
-    Stats_Commit;
+  cleardebug;
+  Writeln('[-----------------------------]');
+  Writeln('[         Essence Miner       ]');
+  Writeln('[-----------------------------]');
+  Writeln(' We worked for ' + TimeRunning);
+  Writeln(' Mined ' + IntToStr(EssMined)+' Essence');
+  Writeln(' Loads Done: ' + IntToStr(TotalLoads));
+  writeLn(' Gained: '+IntToStr(Price*EssMined)+' gp');
+  Writeln(' Gained: ' + IntToStr(TotalLevels)+' levels');
+  Writeln(' Antibanned ' + IntToStr(TotalAntiBan));
+  Writeln('[-----------------------------]');
+  Stats_Commit;
 End;
 
 procedure AntiBan;
@@ -221,7 +223,8 @@ begin
     1: MouseSpeed := 15 + Random(5);
     2: PickUpMouse;
     3: BoredHuman;
-    4..400: begin
+    4..400:
+    begin
       Wait(100 + Random(50));
       Exit;
     end;
@@ -231,12 +234,12 @@ end;
 
 Procedure AntiRandoms;
 Begin
-    If Not (LoggedIn) Or Not (Players[CurrentPlayer].Active) Then
-        NextPlayer(false);
-        LevelTalking;
-    FindNormalRandoms;
-    Wait(300+Random(200));
-    FindLamp(Players[CurrentPlayer].Strings[1]);
+  If Not (LoggedIn) Or Not (Players[CurrentPlayer].Active) Then
+    exit;
+  LevelTalking;
+  FindNormalRandoms;
+  Wait(300+Random(200));
+  FindLamp(Players[CurrentPlayer].Strings[1]);
 End;
 
 Function WalkToAubury: Boolean;
@@ -337,18 +340,19 @@ var
   xX, yY : integer;
   CurrentObject : TRSObject;
 begin
-        Debug('FoundEss2');
-        CurrentObject := GetObjectById(2491, 0, 10);
-        if not (TileOnMs(CurrentObject.Tile, 0) ) then
-          Exit;
-        EPoint := TileToMS(CurrentObject.Tile, 0);
-        MMouse(EPoint.x, EPoint.y, 0, 0);
-        GetMousePos(xX, yY);
-        if WaitUpText('ine', 600) then
-        Mouse(xX, yY, 0, 0, True);
-        if DidRedClick then
-          Result := True
-        else Result := False;
+  Debug('FoundEss2');
+  CurrentObject := GetObjectById(2491, 0, 10);
+  if not (TileOnMs(CurrentObject.Tile, 0) ) then
+    Exit;
+  EPoint := TileToMS(CurrentObject.Tile, 0);
+  MMouse(EPoint.x, EPoint.y, 0, 0);
+  GetMousePos(xX, yY);
+  if WaitUpText('ine', 600) then
+    Mouse(xX, yY, 0, 0, True);
+  if DidRedClick then
+    Result := True
+  else
+    Result := False;
 end;
 
 
@@ -356,9 +360,13 @@ Function MiningCheck:Boolean;
 Begin
   if not LoggedIn then Exit;
   if not CharacterAnimating then
+  begin
     Wait(2500);
-      if CharacterAnimating then
-  Result := True else Result := False;
+    if CharacterAnimating then
+      Result := True
+    else
+      Result := False;
+  end;
 End;
 
 Function DoPortal:boolean;
@@ -379,36 +387,37 @@ Begin
   TPAStoof[1] := [12898508, 2.78, 4.37, 1];
 
   case Players[CurrentPlayer].Loc of
-  'NW' : Begin
-          if not WalkToTile((NWPortalTile), 1, 1) then begin
-          NextPlayer(False);
-          Exit;
-         end;
-         end;
-  'SW' :  Begin
-          if not WalkToTile((SWPortalTile), 1, 1) then begin
-          NextPlayer(False);
-          Exit;
-         end;
-         end;
-  'SE' :  Begin
-          if not WalkToTile((SEPortalTile), 1, 1) then begin
-          NextPlayer(False);
-          Exit;
-         end;
-         end;
-  'NE' :  Begin
-          if not WalkToTile((NEPortalTile), 1, 1) then begin
-          NextPlayer(False);
-          Exit;
-         end;
-         end;
+    'NW' :
+    if not WalkToTile((NWPortalTile), 1, 1) then
+    begin
+      logout;
+      Exit;
+    end;
+    'SW' :
+    if not WalkToTile((SWPortalTile), 1, 1) then
+    begin
+      NextPlayer(False);
+      Exit;
+    end;
+    'SE' :
+    if not WalkToTile((SEPortalTile), 1, 1) then
+    begin
+      NextPlayer(False);
+      Exit;
+    end;
+    'NE' :
+    if not WalkToTile((NEPortalTile), 1, 1) then begin
+      NextPlayer(False);
+      Exit;
+    end;
   End;
-  if CharacterMoving then
+
   Repeat
     Wait(250);
   Until not CharacterMoving;
+
   Wait(3000);
+
   repeat
     for I := 0 to 1 do
     begin
@@ -420,7 +429,7 @@ Begin
     end;
     if Length(WhichTPA[0]) or Length(WhichTPA[1]) > 0 then
       Break;
-  until False;
+  until False//endless loop? Fix it
   LengthA := Length(WhichTPA[0]);
   LengthB := Length(WhichTPA[1]);
   Debug('LengthA = '+IntToStr(LengthA));
@@ -506,7 +515,7 @@ Begin
     if WaitUpText('-to', 600) then
       Mouse(APoint.x, APoint.y, 1, 1, False);
     if not R_ChooseOption('elep') then
-        Exit;
+      Exit;
     Wait(3000);
     Result := True;
     Debug('Done aubury');
@@ -537,49 +546,54 @@ Begin
   Tower := GetObjectByID(506, OBJECT_TYPE_FLOORDECOR, 30);
   Tracks := GetObjectByID(454, OBJECT_TYPE_FLOORDECOR, 20);
   if (DistanceFrom(NW) < 20) or (DistanceFrom(NE) <10) or (DistanceFrom(SE) <30) or (DistanceFrom(SW) <20) then
-      Result := True
-      else begin
-          NextPlayer(False);
-          Debug('AtEssPlace False');
-          Result := False;
-          Exit
-     end;
+    Result := True
+  else
+  begin
+    NextPlayer(False);
+    Debug('AtEssPlace False');
+    Result := False;
+    Exit;
+  end;
 End;
 
 Function WhichEssPlace:boolean;   // I know I can do case, will do later.
 Begin
-  if DistanceFrom(tile(2892, 4848)) < 16 then begin
+  if DistanceFrom(tile(2892, 4848)) < 16 then
+  begin
     Players[CurrentPlayer].Loc := 'NW';
     Debug('At NW');
     if BoomEss then
       if DoPortal then
     Result := True;
     Exit;
-    End;
-  if DistanceFrom(tile(2926, 4849)) < 16 then begin
-      Players[CurrentPlayer].Loc := 'NE';
-      Debug('At NE');
-      if BoomEss then
-        if DoPortal then
-      Result := True;
-      Exit;
-    End;
-  if DistanceFrom(tile(2929, 4816)) < 16 then begin
-      Players[CurrentPlayer].Loc := 'SE';
-      Debug('At SE');
-      if BoomEss then
-        if DoPortal then
-      Result := True;
-      Exit;
-    End;
-  if DistanceFrom(tile(2895, 4814)) < 16 then begin
-      Players[CurrentPlayer].Loc := 'SW';
-      Debug('At SW');
-      if BoomEss then
-        if DoPortal then
-      Result := True;
-      Exit;
-    End;
+  End;
+  if DistanceFrom(tile(2926, 4849)) < 16 then
+  begin
+    Players[CurrentPlayer].Loc := 'NE';
+    Debug('At NE');
+    if BoomEss then
+      if DoPortal then
+    Result := True;
+    Exit;
+  End;
+  if DistanceFrom(tile(2929, 4816)) < 16 then
+  begin
+    Players[CurrentPlayer].Loc := 'SE';
+    Debug('At SE');
+    if BoomEss then
+      if DoPortal then
+    Result := True;
+    Exit;
+  End;
+  if DistanceFrom(tile(2895, 4814)) < 16 then
+  begin
+    Players[CurrentPlayer].Loc := 'SW';
+    Debug('At SW');
+    if BoomEss then
+      if DoPortal then
+    Result := True;
+    Exit;
+  End;
 End;
 
 Function AtMiddle:boolean;
@@ -593,7 +607,7 @@ Begin
   Wait(5000);
   Writeln('Starting at Middle');
   MainTile := Tile(2909, 4834);
-  MiddleTile[0] := Tile(MainTile.x, MainTile.y);
+  MiddleTile[0] := Tile(MainTile.x, MainTile.y); //Just do MiddleTile:=[blah] or a For loop
   MiddleTile[1] := Tile(MainTile.x+1, MainTile.y);
   MiddleTile[2] := Tile(MainTile.x+2, MainTile.y);
   MiddleTile[3] := Tile(MainTile.x+3, MainTile.y);
@@ -623,26 +637,27 @@ Begin
   Rope := GetObjectByID(496, OBJECT_TYPE_FLOORDECOR, 9);
   done := GetMyPos;
   For I:= 0 to 26 do
-  if ((done.x = MiddleTile[I].x) and (done.y = MiddleTile[I].y)) then begin
-  //if TileOnMS(MiddleTile[I].x, MiddleTile[I].y, 0) then begin
-      Writeln('AtMiddle');
-      Result := True;
-      Exit
-    end else
+  if ((done.x = MiddleTile[I].x) and (done.y = MiddleTile[I].y)) then
+  begin
+    Writeln('AtMiddle');
+    Result := True;
+    Exit
+  end else
   Result := false;
 End;
 
 Function WalkFromMiddle:boolean;
 Begin
   if not LoggedIn then Exit;
-    Writeln('Starting WalkFromMiddle');
-    WalkToTile(Point(2906, 4826), 1, 1);
-    If WalkToTile(Point(2898, 4815), 1, 1) then
-      Begin
-        Wait(1500 + Random(500));
-        Debug('Walked from middle');
-        Result := True
-      End else Result := False;
+  Writeln('Starting WalkFromMiddle');
+  WalkToTile(Point(2906, 4826), 1, 1);
+  If WalkToTile(Point(2898, 4815), 1, 1) then
+  Begin
+    Wait(1500 + Random(500));
+    Debug('Walked from middle');
+    Result := True
+  End else
+    Result := False;
 End;
 
 
@@ -665,31 +680,32 @@ B : boolean;
 Begin
   If Not LoggedIn Then
     Exit;
-    if CharacterMoving then
-    Repeat
-      Wait(100)
-    Until not CharacterMoving;
-    Wait(1000+ Random(1000));
-    EssCountEnd := R_InvCount;
-    ID := getItemIDAt(2);
+
+  Repeat
+    Wait(100)
+  Until not CharacterMoving;
+  Wait(1000+ Random(1000));
+  EssCountEnd := R_InvCount;
+  ID := getItemIDAt(2);
   If Not OpenBankFast(Bank_VE) Then
     If Not OpenBankQuiet(Bank_VE) Then
       If Not R_OpenBankBooth('veb') then
-      Exit;
-     for i := 1 + Integer(not Players[CurrentPlayer].Booleans[0]) to 28 do
-      begin
-        Deposit(i, 28, True);
-      end;
+        Exit;
+  for i := 1 + Integer(not Players[CurrentPlayer].Booleans[0]) to 28 do
+  begin
+    Deposit(i, 28, True);
+  end;
   CloseBank;
   Inc(Players[CurrentPlayer].Integers[1]);
   stats_IncVariable('Loads Done', 1);
   EssCountFinal := (EssCountEnd - EssCountStart);
   begin
-        B := ID = RUNEESS_ID;
-        SetPrice(B);
-        if B then
-          stats_IncVariable('Rune Essence (Mined)', EssCountFinal)
-        else stats_IncVariable('Pure Essence (Mined)', EssCountFinal);
+    B := ID = RUNEESS_ID;
+    SetPrice(B);
+    if B then
+      stats_IncVariable('Rune Essence (Mined)', EssCountFinal)
+    else
+      stats_IncVariable('Pure Essence (Mined)', EssCountFinal);
   end;
   IncEx(Players[CurrentPlayer].Integers[0], EssCountFinal);
   ProgressReport;
@@ -699,59 +715,57 @@ End;
 Procedure MainLoop;
 Begin
   repeat
-  Case Lowercase(Players[CurrentPlayer].Loc) of
-    'banked':
-    if WalkToAubury then
-      Players[CurrentPlayer].Loc := 'at aubury';
-    'at aubury':
-    if DoAubury then
-      Players[CurrentPlayer].Loc := 'done aubury';
-    'done aubury': begin
-    if AtMiddle then
-      Players[CurrentPlayer].Loc := 'at middle'
-    else Players[CurrentPlayer].Loc := 'nearly ess';
-      end;
-    'at middle':
-    if WalkFromMiddle then
-      Players[CurrentPlayer].Loc := 'nearly ess';
-    'nearly ess':
-    if AtEssPlace then
-      Players[CurrentPlayer].Loc := 'at ess';
-    'at ess':
-    if WhichEssPlace then
-      Players[CurrentPlayer].Loc := 'teleported';
-    'teleported':
-    if WalkToBank then
-      Players[CurrentPlayer].Loc := 'at bank';
-    'at bank':
-    if Bank then
-      Players[CurrentPlayer].Loc := 'banked';
-  end;
+    Case Lowercase(Players[CurrentPlayer].Loc) of
+      'banked':
+      if WalkToAubury then
+        Players[CurrentPlayer].Loc := 'at aubury';
+      'at aubury':
+      if DoAubury then
+        Players[CurrentPlayer].Loc := 'done aubury';
+      'done aubury': begin
+      if AtMiddle then
+        Players[CurrentPlayer].Loc := 'at middle'
+      else Players[CurrentPlayer].Loc := 'nearly ess';
+        end;
+      'at middle':
+      if WalkFromMiddle then
+        Players[CurrentPlayer].Loc := 'nearly ess';
+      'nearly ess':
+      if AtEssPlace then
+        Players[CurrentPlayer].Loc := 'at ess';
+      'at ess':
+      if WhichEssPlace then
+        Players[CurrentPlayer].Loc := 'teleported';
+      'teleported':
+      if WalkToBank then
+        Players[CurrentPlayer].Loc := 'at bank';
+      'at bank':
+      if Bank then
+        Players[CurrentPlayer].Loc := 'banked';
+    end;
   until(Players[CurrentPlayer].Integers[1] >= Players[CurrentPlayer].Integers[4]);
 End;
 
-
-
 begin
-    ClearDebug;
-    ClearReport;
-    SetupSRLStats(22, SRLStats_UserID, SRLStats_Password);
-    Smart_Server := 17;
-    Smart_Members := false;
-    Smart_Signed := true;
-    Smart_SuperDetail := false;
-    SetupSRL;
-    AddOnTerminate('ProgressReport');
-    begin
-        DeclarePlayers;
-        LoginPlayer;
-        ProgressReport;
-        AxeWielded;
-        MakeCompass('North');
-        SetAngle(True);
-        Gametab(tab_Inv);
-  repeat
-    MainLoop
-  until AllPlayersInactive();
-    end;
+  ClearDebug;
+  ClearReport;
+  SetupSRLStats(22, SRLStats_UserID, SRLStats_Password);
+  Smart_Server := 17;
+  Smart_Members := false;
+  Smart_Signed := true;
+  Smart_SuperDetail := false;
+  SetupSRL;
+  AddOnTerminate('ProgressReport');
+  begin
+    DeclarePlayers;
+    LoginPlayer;
+    ProgressReport;
+    AxeWielded;
+    MakeCompass('North');
+    SetAngle(True);
+    Gametab(tab_Inv);
+    repeat
+      MainLoop;
+    until AllPlayersInactive();
+  end;
 end.
